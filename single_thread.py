@@ -55,10 +55,7 @@ class SingleThread:
         values = []
         rewards = []
         actions = []
-
-        policies = []
-        log_policies = []
-        Rs = []
+        td = []
 
         deltas = []
         gaes = []
@@ -78,8 +75,6 @@ class SingleThread:
             action = self.choose_action(policy)
 
             states.append(state)
-            policies.append(policy)
-            log_policies.append(tf.log(policy))
 
             state, reward, done = self.env.step(action)
             rewards.append(reward)
@@ -109,7 +104,8 @@ class SingleThread:
 
         for i in reversed(range(len(rewards))):
             R = R * gamma + rewards[i]
-            Rs.append(R)
+            R = R - values[i]
+            td.append(R)
 
             delta = rewards[i] + gamma * values[i+1] - values[i]
             deltas.append(delta)
@@ -118,13 +114,10 @@ class SingleThread:
             gaes.append(gae)
 
 
-
-        states = reversed(states)
-        rewards = reversed(rewards)
-        values = reversed(values)
-
-        gaes = reversed(gaes)
-        deltas = reversed(deltas)
+        states.reverse()
+        states = np.array(states).reshape(-1, 47, 47, 1)
+        rewards.reverse()
+        values.reverse()
 
 
         sess.run([self.apply_gradients],
@@ -133,11 +126,9 @@ class SingleThread:
                          self.local_network.rewards: rewards,
                          self.local_network.values: values,
                          self.local_network.step_size: [len(actions)],
-                         self.local_network.policies: policies,
-                         self.local_network.log_policies: log_policies,
-                         self.local_network.Rs: Rs,
                          self.local_network.deltas: deltas,
                          self.local_network.gaes: gaes,
+                         self.local_network.td: td,
                          self.local_network.cell_state: initial_lstm_state[0],
                          self.local_network.hidden_state: initial_lstm_state[1],
         })

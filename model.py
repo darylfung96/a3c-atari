@@ -14,6 +14,7 @@ class A3CLSTM(object):
         self.gamma = gamma
         self.tau = tau
 
+
         # in case if we have GPU, we can change the device
         # we also declare the variable scope for this
         scope_name = 'AC3net_' + str(self._thread_index)
@@ -81,9 +82,7 @@ class A3CLSTM(object):
 
             self.rewards = tf.placeholder("float", [None])
             self.values = tf.placeholder("float", [None])
-            self.policies = tf.placeholder("float", [None])
-            self.log_policies = tf.placeholder("float", [None])
-            self.Rs = tf.placeholder("float", [None])
+            self.td = tf.placeholder("float", [None])
             self.deltas = tf.placeholder("float", [None])
             self.gaes = tf.placeholder("float", [None])
 
@@ -91,12 +90,15 @@ class A3CLSTM(object):
             # calculate loss function
             self.loss_calculate_scaffold()
 
+            variables_names = [v.name for v in tf.trainable_variables()]
+            print(variables_names)
+
             # when we create BasicLSTMCell, these variables are automatically created for us
             # we want to pass this to w_lstm, and b_lstm
             # reuse the variables automatically created in BasicLSTMCell
             scope.reuse_variables()
-            self.w_lstm = tf.get_variable('basic_lstm_cell/weights')
-            self.b_lstm = tf.get_variable('basic_lstm_cell/biases')
+            self.w_lstm = tf.get_variable('basic_lstm_cell/kernel')
+            self.b_lstm = tf.get_variable('basic_lstm_cell/bias')
 
             self.reset_loss()
 
@@ -114,22 +116,24 @@ class A3CLSTM(object):
     def loss_calculate_scaffold(self):
         with tf.device(self._device):
 
-            self.R = self.value
+            #self.R = self.value
 
             # values pass in here should be reversed #
 
             #policy loss
             #self.R = self.R * self.gamma + self.rewards R is calculated for us in thread
-            advantage = tf.subtract(self.Rs, self.values)
-            self.value_loss = tf.cumsum(0.5 * tf.square(advantage))
+            self.value_loss = tf.cumsum(0.5 * tf.square(self.td)) + self.value
 
+
+# we need gaes, deltas, rewards, values, td, states
 
 #TODO write the policy loss function
             # get policy_loss
             #delta = self.rewards[i] + self.gamma * self.values[i+1] - self.values[i]
             #self.gae = self.gae * self.gamma * self.tau + delta
-            entropies = -tf.multiply(self.log_policies, self.policies)
-            self.policy_loss = -tf.reduce_sum(tf.multiply(self.log_policies, self.gaes) - 0.01 * entropies)
+            log_policy = tf.log(self.policy)
+            entropies = -tf.multiply(log_policy, self.policy)
+            self.policy_loss = -tf.reduce_sum(tf.multiply(log_policy, self.gaes) - 0.01 * entropies)
             #self.policy_loss = self.policy_loss - self.log_policy * self.gae - 0.01 * entropies
             """ end of for loops """
 
