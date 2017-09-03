@@ -133,8 +133,9 @@ class SingleThread:
         })
 
         if self.thread_index is 0:
-            print('value: {}'.format(self.local_network.value))
-            print('policy: {}'.format(self.local_network.policy))
-            print('total loss: {}'.format(self.local_network.total_loss))
+            #print('value: {}'.format(self.local_network.value))
+            #print('policy: {}'.format(self.local_network.policy))
+            #print('total loss: {}'.format(self.local_network.total_loss))
+            print('episode reward: %d' % self.episode_reward)
 
 
