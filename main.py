@@ -9,14 +9,14 @@ import math
 import os
 import time
 
-THREAD_SIZE = 1
-
+THREAD_SIZE = 4
 
 from env import Env
 from rmsprop_applier import RMSApplier
 from model import A3CLSTM
 from single_thread import SingleThread
 
+ENV_NAME = 'Assault-v0'
 create_env = Env('Assault-v0')
 sess = tf.Session(config=tf.ConfigProto(log_device_placement=False,
 allow_soft_placement=True))
@@ -30,7 +30,7 @@ threads = []
 
 # Create worker threads
 for i in range(THREAD_SIZE):
-    singleThread = SingleThread(i, global_network, 0.01, grad_applier, 100, number_actions, create_env)
+    singleThread = SingleThread(i, global_network, 0.01, grad_applier, 100, number_actions, ENV_NAME)
     threads.append(singleThread)
 sess.run(tf.global_variables_initializer())
 
@@ -49,6 +49,7 @@ for i in range(THREAD_SIZE):
 
 for thread in thread_run:
     thread.start()
+    time.sleep(1) # sleep for a bit before starting another thread
 
 
 

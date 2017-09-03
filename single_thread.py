@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+from env import Env
 
 from model import A3CLSTM
 
@@ -11,7 +12,7 @@ tau = 1.
 
 class SingleThread:
     def __init__(self, thread_index, global_network, initial_learning_rate,
-                 grad_applier, max_global_time_step, action_size, env, device='/CPU:0'):
+                 grad_applier, max_global_time_step, action_size, env_name, device='/CPU:0'):
 
         self.thread_index = thread_index
         self.global_network = global_network
@@ -20,7 +21,7 @@ class SingleThread:
         self.max_global_time_step = max_global_time_step
         self.device = device
         self.action_size = action_size
-        self.env = env
+        self.env = Env(env_name)
 
         # prepare model
         self.local_network = A3CLSTM(action_size, self.thread_index, self.device)
