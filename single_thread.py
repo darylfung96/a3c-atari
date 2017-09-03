@@ -112,7 +112,7 @@ class SingleThread:
 
             gae = gamma * tau * gae + delta
             gaes.append(gae)
-
+        gaes = np.expand_dims(gaes, 1)
 
         states.reverse()
         states = np.array(states).reshape(-1, 47, 47, 1)
@@ -129,8 +129,7 @@ class SingleThread:
                          self.local_network.deltas: deltas,
                          self.local_network.gaes: gaes,
                          self.local_network.td: td,
-                         self.local_network.cell_state: initial_lstm_state[0],
-                         self.local_network.hidden_state: initial_lstm_state[1],
+                         self.local_network.LSTMState: initial_lstm_state
         })
 
         if self.thread_index is 0:

@@ -33,11 +33,12 @@ class A3CLSTM(object):
 
             self.w_conv3, self.b_conv3 = self._conv_weight_variables([5, 5, 32, 32])
             conv_layer3 = tf.nn.elu(self._conv2d(conv_layer2, self.w_conv3, 2) + self.b_conv3)
+            self.conv_layer33 = conv_layer3
 
             """ fully connected layer """
-            flatten_layer1 = tf.reshape(conv_layer3, [-1, 12])
+            flatten_layer1 = tf.reshape(conv_layer3, [-1, 288])
 
-            self.w_fc1, self.b_fc1 = self._fc_weight_variables([12, 256])
+            self.w_fc1, self.b_fc1 = self._fc_weight_variables([288, 256])
             f_connect1 = tf.nn.elu(tf.matmul(flatten_layer1, self.w_fc1) + self.b_fc1)
 
             f_connect1_reshaped = tf.reshape(f_connect1, [1, -1, 256])
@@ -84,7 +85,7 @@ class A3CLSTM(object):
             self.values = tf.placeholder("float", [None])
             self.td = tf.placeholder("float", [None])
             self.deltas = tf.placeholder("float", [None])
-            self.gaes = tf.placeholder("float", [None])
+            self.gaes = tf.placeholder("float", [None, 1])
 
             self.is_first = True # this will help get value gradient for the first time at the end of the step
             # calculate loss function
@@ -133,6 +134,7 @@ class A3CLSTM(object):
             #self.gae = self.gae * self.gamma * self.tau + delta
             log_policy = tf.log(self.policy)
             entropies = -tf.multiply(log_policy, self.policy)
+            # calculate policy loss
             self.policy_loss = -tf.reduce_sum(tf.multiply(log_policy, self.gaes) - 0.01 * entropies)
             #self.policy_loss = self.policy_loss - self.log_policy * self.gae - 0.01 * entropies
             """ end of for loops """
