@@ -86,13 +86,12 @@ class A3CLSTM(object):
             self.td = tf.placeholder("float", [None])
             self.deltas = tf.placeholder("float", [None])
             self.gaes = tf.placeholder("float", [None, 1])
+            self.a = tf.placeholder("float", [None, self._action_size])
+            self.discounted_rewards = tf.placeholder("float", [None, 1])
 
             self.is_first = True # this will help get value gradient for the first time at the end of the step
             # calculate loss function
             self.loss_calculate_scaffold()
-
-            variables_names = [v.name for v in tf.trainable_variables()]
-            print(variables_names)
 
             # when we create BasicLSTMCell, these variables are automatically created for us
             # we want to pass this to w_lstm, and b_lstm
@@ -122,9 +121,15 @@ class A3CLSTM(object):
             # values pass in here should be reversed #
 
             #policy loss
+            #TODO fix this value loss
+            ######3 old value loss ##########
             #self.R = self.R * self.gamma + self.rewards R is calculated for us in thread
-            self.value_loss = tf.cumsum(0.5 * tf.square(self.td)) + 0.5 * self.value
-
+            # R = R * gamma + reward ( last R is either 0 or value)
+            # advantage = R - value
+            #value loss will be 0.5 * advantage.
+            #self.value_loss = tf.cumsum(0.5 * tf.square(self.td)) + 0.5 * self.value
+            #################################
+            value_loss = 0.5 * tf.nn.l2_loss(self.discounted_rewards - self.value)
 
 # we need gaes, deltas, rewards, values, td, states
 
@@ -132,10 +137,13 @@ class A3CLSTM(object):
             # get policy_loss
             #delta = self.rewards[i] + self.gamma * self.values[i+1] - self.values[i]
             #self.gae = self.gae * self.gamma * self.tau + delta
-            log_policy = tf.log(self.policy)
+            log_policy = tf.log(self.policy + 1e-6)  # add a constant to prevent NaN
             entropies = -tf.multiply(log_policy, self.policy)
             # calculate policy loss
-            self.policy_loss = -tf.reduce_sum(tf.multiply(log_policy, self.gaes) - 0.01 * entropies)
+            td = self.discounted_rewards - self.value
+
+            log_action = tf.multiply(log_policy, self.a) * td
+            self.policy_loss = -tf.reduce_sum(log_action - 0.01 * entropies)
             #self.policy_loss = self.policy_loss - self.log_policy * self.gae - 0.01 * entropies
             """ end of for loops """
 

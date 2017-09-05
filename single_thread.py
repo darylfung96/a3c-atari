@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from env import Env
+import time
 
 from model import A3CLSTM
 
@@ -55,13 +56,16 @@ class SingleThread:
         return learning_rate
 
 
+    def write_summary(self, summary, train_writer, global_step):
+        if self.thread_index == 0 and self.done:
+            train_writer.add_summary(summary, global_step)
 
     def process(self, sess, summary_op, train_writer, score, global_step):
         states = []
         values = []
         rewards = []
+        discounted_rewards = []
         actions = []
-        td = []
 
         deltas = []
         gaes = []
@@ -74,57 +78,68 @@ class SingleThread:
 
         if self.done:
             self.state = self.env.reset()
-            self.episode_reward = 0
+            self.done = False
+            #self.write_summary(sess, train_writer, score, summary_op, global_step)
+           # print(self.episode_reward)
+            #self.episode_reward = 0
 
         # now our local network is the same as global network
         for i in range(0, LOCAL_MAX_STEP):
-            self.env.render()
             policy, value = self.local_network.get_policy_value(sess, self.state)
             action = self.choose_action(policy)
 
             states.append(self.state)
+            actions.append(action)
 
-            self.state, reward, done = self.env.step(action)
+            self.state, reward, self.done = self.env.step(action)
             rewards.append(reward)
-            actions.append(action)
+
             values.append(value[0])
-            actions.append(action)
 
             self.episode_reward += reward
 
 
-            if done:
+            if self.done:
                 print('Episode reward: {}'.format(self.episode_reward))
 
                 self.episode_reward = 0
                 self.state = self.env.reset()
                 self.local_network.reset_lstm_state()
-                step = 0
+
                 break
 
         R = 0.0
         gae = 0.0
 
-        if done is False:
-            _, value = self.local_network.get_policy_value(sess, self.state) # run and get the last value
-            R = value[0]
+        if self.done is False:
+            _, R = self.local_network.get_policy_value(sess, self.state) # run and get the last value
+            R = R[0]
+            #states.append(self.state)
+            #R = value[0]
 
-        values.append(R)
+        #values.append(R)
 
+        a = []
+        action_batch = []
         for i in reversed(range(len(rewards))):
             R = R * gamma + rewards[i]
             R = R - values[i]
-            td.append(R)
+            discounted_rewards.append(R)
+            a = np.zeros(self.action_size)
+            a[actions[i]] = 1
 
-            delta = rewards[i] + gamma * values[i+1] - values[i]
-            deltas.append(delta)
+            action_batch.append(a)
 
-            gae = gamma * tau * gae + delta
-            gaes.append(gae)
-        gaes = np.expand_dims(gaes, 1)
+            #delta = rewards[i] + gamma * values[i+1] - values[i]
+            #deltas.append(delta)
+
+            #gae = gamma * tau * gae + delta
+            #gaes.append(gae)
+        #gaes = np.expand_dims(gaes, 1)
 
         states.reverse()
         states = np.array(states).reshape(-1, 47, 47, 1)
+        discounted_rewards = np.array(discounted_rewards).reshape(-1, 1)
         rewards.reverse()
         values.reverse()
 
@@ -133,23 +148,18 @@ class SingleThread:
                      feed_dict={
                          self.local_network.s: states,
                          self.local_network.rewards: rewards,
-                         self.local_network.values: values,
+                         #self.local_network.values: values,
                          self.local_network.step_size: [len(actions)],
-                         self.local_network.deltas: deltas,
-                         self.local_network.gaes: gaes,
-                         self.local_network.td: td,
+                         #self.local_network.deltas: deltas,
+                        # self.local_network.gaes: gaes,
+                         #self.local_network.td: td,
+                         self.local_network.a: action_batch,
+                         self.local_network.discounted_rewards: discounted_rewards,
                          self.local_network.LSTMState: initial_lstm_state,
                          score: self.episode_reward
         })
 
-        train_writer.add_summary(summary, global_step)
-        global_step+=1
+        self.write_summary(summary, train_writer, global_step)
 
-
-        if self.thread_index is 0 and global_step % 10 == 0:
-            #print('value: {}'.format(self.local_network.value))
-            #print('policy: {}'.format(self.local_network.policy))
-            #print('total loss: {}'.format(self.local_network.total_loss))
-            print('episode reward: %d' % self.episode_reward)
 
 

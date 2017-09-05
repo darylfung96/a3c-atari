@@ -9,7 +9,7 @@ import math
 import os
 import time
 
-THREAD_SIZE = 4
+THREAD_SIZE = 1
 SAVE_MODEL_RATE = 50    # Save model after this number of step
 
 from env import Env
@@ -36,10 +36,10 @@ for i in range(THREAD_SIZE):
     threads.append(singleThread)
 
 # restore model #
-if os.path.isfile('my_model.ckpt'):
-    tf.train.Saver().restore(sess, 'my_model.ckpt')
-else:
-    print('model not found.')
+#if os.path.isfile('my_model.ckpt'):
+#    tf.train.Saver().restore(sess, 'my_model.ckpt')
+#else:
+#    print('model not found.')
 
 # initialize global variables #
 sess.run(tf.global_variables_initializer())
@@ -54,9 +54,10 @@ train_writer = tf.summary.FileWriter('./summary/train', graph=sess.graph)
 
 # the step for the summary
 
+global_step = 0
 
-def train(thread_index, save_variables):
-    global_step = 0
+def train(thread_index):
+    global global_step
     while True:
         threads[thread_index].process(sess, summary_op, train_writer, score, global_step)
         global_step += 1
