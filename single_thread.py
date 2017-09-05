@@ -57,7 +57,7 @@ class SingleThread:
 
 
     def write_summary(self, summary, train_writer, global_step):
-        if self.thread_index == 0 and self.done:
+        if self.thread_index == 0 and global_step % 10 == 0:
             train_writer.add_summary(summary, global_step)
 
     def process(self, sess, summary_op, train_writer, score, global_step):

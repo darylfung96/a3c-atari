@@ -9,7 +9,7 @@ import math
 import os
 import time
 
-THREAD_SIZE = 1
+THREAD_SIZE = 10
 SAVE_MODEL_RATE = 50    # Save model after this number of step
 
 from env import Env
