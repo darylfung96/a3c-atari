@@ -123,7 +123,7 @@ class A3CLSTM(object):
 
             #policy loss
             #self.R = self.R * self.gamma + self.rewards R is calculated for us in thread
-            self.value_loss = tf.cumsum(0.5 * tf.square(self.td)) + self.value
+            self.value_loss = tf.cumsum(0.5 * tf.square(self.td)) + 0.5 * self.value
 
 
 # we need gaes, deltas, rewards, values, td, states
