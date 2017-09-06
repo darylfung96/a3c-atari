@@ -1,5 +1,6 @@
 import threading
 import tensorflow as tf
+import argparse
 
 import time
 
@@ -11,8 +12,18 @@ from rmsprop_applier import RMSApplier
 from model import A3CLSTM
 from single_thread import SingleThread
 
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--env', default='Assault-v0', help='Environment to train on')
+parser.add_argument('--lr', default='0.01', help='Learning rate of agent')
+
+
+args = parser.parse_args()
+
+
+
 ENV_NAME = 'Assault-v0'
-create_env = Env('Assault-v0')
+create_env = Env(args.env)
 sess = tf.Session(config=tf.ConfigProto(log_device_placement=False,
 allow_soft_placement=True))
 
@@ -24,7 +35,7 @@ threads = []
 
 # Create worker threads
 for i in range(THREAD_SIZE):
-    singleThread = SingleThread(sess, i, global_network, 0.01, grad_applier, 100, number_actions, ENV_NAME)
+    singleThread = SingleThread(sess, i, global_network, args.lr, grad_applier, 100, number_actions, ENV_NAME)
     threads.append(singleThread)
 
 # restore model #
