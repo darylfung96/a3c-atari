@@ -33,8 +33,10 @@ class SingleThread:
         self.gradients = tf.gradients(self.local_network.total_loss, v_ref,
                                       colocate_gradients_with_ops=False, gate_gradients=False,
                                       aggregation_method=None)
-        self.apply_gradients = grad_applier.apply_gradient(self.global_network.get_vars(),
-                                                            self.gradients)
+       # self.apply_gradients = grad_applier.apply_gradient(self.global_network.get_vars(),
+       #                                                     self.gradients)
+
+        self.apply_gradients = tf.train.RMSPropOptimizer(initial_learning_rate).apply_gradients(zip(self.gradients, self.global_network.get_vars()))
 
         self.sync = self.local_network.sync_from(self.global_network)
 
@@ -79,12 +81,10 @@ class SingleThread:
         if self.done:
             self.state = self.env.reset()
             self.done = False
-            #self.write_summary(sess, train_writer, score, summary_op, global_step)
-           # print(self.episode_reward)
-            #self.episode_reward = 0
 
         # now our local network is the same as global network
         for i in range(0, LOCAL_MAX_STEP):
+            #self.env.render()
             policy, value = self.local_network.get_policy_value(sess, self.state)
             action = self.choose_action(policy)
 
@@ -115,15 +115,13 @@ class SingleThread:
             _, R = self.local_network.get_policy_value(sess, self.state) # run and get the last value
             R = R[0]
             #states.append(self.state)
-            #R = value[0]
 
-        #values.append(R)
 
         a = []
         action_batch = []
         for i in reversed(range(len(rewards))):
             R = R * gamma + rewards[i]
-            R = R - values[i]
+            #R = R - values[i] # this is temporal difference
             discounted_rewards.append(R)
             a = np.zeros(self.action_size)
             a[actions[i]] = 1
@@ -140,16 +138,15 @@ class SingleThread:
         states.reverse()
         states = np.array(states).reshape(-1, 47, 47, 1)
         discounted_rewards = np.array(discounted_rewards).reshape(-1, 1)
-        rewards.reverse()
-        values.reverse()
+        #rewards.reverse()
 
 
         _, summary = sess.run([self.apply_gradients, summary_op],
                      feed_dict={
                          self.local_network.s: states,
-                         self.local_network.rewards: rewards,
+                         #self.local_network.rewards: rewards,
                          #self.local_network.values: values,
-                         self.local_network.step_size: [len(actions)],
+                         self.local_network.step_size: [len(states)],
                          #self.local_network.deltas: deltas,
                         # self.local_network.gaes: gaes,
                          #self.local_network.td: td,
@@ -162,4 +159,4 @@ class SingleThread:
         self.write_summary(summary, train_writer, global_step)
 
 
-
+        time.sleep(2)

@@ -1,6 +1,8 @@
 import gym
 import numpy as np
 from scipy import misc
+import matplotlib.pyplot as plt
+import matplotlib.image as img
 
 def _preprocess_observation(observation):
     observation = np.mean(observation, 2)
@@ -15,6 +17,7 @@ class Env():
 
     def step(self, action):
         observation, reward, done, _ = self.env.step(action)
+
         observation = _preprocess_observation(observation)
         reward = np.clip(reward, -1, 1)
         return observation, reward, done

@@ -1,15 +1,9 @@
 import threading
 import tensorflow as tf
 
-
-
-import signal
-import random
-import math
-import os
 import time
 
-THREAD_SIZE = 10
+THREAD_SIZE = 7
 SAVE_MODEL_RATE = 50    # Save model after this number of step
 
 from env import Env
@@ -25,8 +19,6 @@ allow_soft_placement=True))
 number_actions = create_env.number_actions()
 global_network = A3CLSTM(number_actions, -1)
 grad_applier = RMSApplier()
-#sess.run(tf.global_variables_initializer())
-
 
 threads = []
 

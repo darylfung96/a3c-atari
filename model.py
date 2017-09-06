@@ -129,7 +129,7 @@ class A3CLSTM(object):
             #value loss will be 0.5 * advantage.
             #self.value_loss = tf.cumsum(0.5 * tf.square(self.td)) + 0.5 * self.value
             #################################
-            value_loss = 0.5 * tf.nn.l2_loss(self.discounted_rewards - self.value)
+            self.value_loss = 0.5 * tf.nn.l2_loss(self.discounted_rewards - self.value)
 
 # we need gaes, deltas, rewards, values, td, states
 
@@ -140,10 +140,10 @@ class A3CLSTM(object):
             log_policy = tf.log(self.policy + 1e-6)  # add a constant to prevent NaN
             entropies = -tf.multiply(log_policy, self.policy)
             # calculate policy loss
-            td = self.discounted_rewards - self.value
+            self.td = self.discounted_rewards - self.value
 
-            log_action = tf.multiply(log_policy, self.a) * td
-            self.policy_loss = -tf.reduce_sum(log_action - 0.01 * entropies)
+
+            self.policy_loss = -tf.reduce_sum(tf.multiply(log_policy, self.a) * self.td + 0.01 * entropies)
             #self.policy_loss = self.policy_loss - self.log_policy * self.gae - 0.01 * entropies
             """ end of for loops """
 
